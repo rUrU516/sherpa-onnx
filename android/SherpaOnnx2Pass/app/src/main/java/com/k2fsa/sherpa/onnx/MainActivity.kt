@@ -193,7 +193,13 @@ class MainActivity : AppCompatActivity() {
         // Please change getModelConfig() to add new models
         // See https://k2-fsa.github.io/sherpa/onnx/pretrained_models/index.html
         // for a list of available models
-        val firstType = 9
+
+        /*
+        5: paraformer bilingual (big)
+        0: zipformer bilingual
+        9: zipformer zh 14M (small)
+        */
+        val firstType = 0
         val firstRuleFsts: String?
         firstRuleFsts = null
         Log.i(TAG, "Select model type $firstType for the first pass")
@@ -217,7 +223,12 @@ class MainActivity : AppCompatActivity() {
         // Please change getOfflineModelConfig() to add new models
         // See https://k2-fsa.github.io/sherpa/onnx/pretrained_models/index.html
         // for a list of available models
-        val secondType = 0
+
+        /*
+        15: 2024 sense-voice int8
+        41: 2025 sense-voice int8
+         */
+        val secondType = 15
         var secondRuleFsts: String?
         secondRuleFsts = null
         Log.i(TAG, "Select model type $secondType for the second pass")
