@@ -65,6 +65,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Hide the ActionBar for a full-screen terminal-like experience
+        supportActionBar?.hide()
+        
         setContentView(R.layout.activity_main)
 
         ActivityCompat.requestPermissions(this, permissions, REQUEST_RECORD_AUDIO_PERMISSION)
@@ -199,7 +203,7 @@ class MainActivity : AppCompatActivity() {
         0: zipformer bilingual
         9: zipformer zh 14M (small)
         */
-        val firstType = 0
+        val firstType = 9
         val firstRuleFsts: String?
         firstRuleFsts = null
         Log.i(TAG, "Select model type $firstType for the first pass")

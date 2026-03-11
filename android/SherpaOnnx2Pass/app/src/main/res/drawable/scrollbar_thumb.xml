@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Solid color for the scrollbar thumb -->
+    <solid android:color="#888888" />
+    <!-- Optional: Rounded corners for the thumb -->
+    <corners android:radius="4dp" />
+    <!-- Size of the thumb -->
+    <size android:width="6dp" />
+</shape>
