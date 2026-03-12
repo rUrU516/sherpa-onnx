@@ -44,6 +44,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var offlineModelButton: Button
     private lateinit var switchingOverlay: View
     private lateinit var tvCurrentModel: TextView
+    private lateinit var tvPerfStats: TextView
     private lateinit var scrollView: ScrollView
     private lateinit var textView: TextView
     private lateinit var levelTrack: View
@@ -115,6 +116,7 @@ class MainActivity : AppCompatActivity() {
         offlineModelButton.setOnClickListener { toggleOfflineModel() }
         switchingOverlay = findViewById(R.id.switching_overlay)
         tvCurrentModel = findViewById(R.id.tv_current_model)
+        tvPerfStats = findViewById(R.id.tv_perf_stats)
         scrollView = findViewById(R.id.scroll_view)
 
         textView = findViewById(R.id.my_text)
@@ -392,11 +394,25 @@ class MainActivity : AppCompatActivity() {
                 scrollView.setBackgroundResource(R.drawable.text_bg_active)
             }
 
+            // Calculate duration of the audio samples
+            val audioDurationSec = task.samples.size.toFloat() / sampleRateInHz.toFloat()
+
+            // Measure inference time
+            val startTime = System.currentTimeMillis()
             val text = runSecondPassOnSamples(task.samples)
+            val endTime = System.currentTimeMillis()
+            val inferenceTimeMs = endTime - startTime
+
+            val finalAudioDurationSec = audioDurationSec
+            val finalInferenceTimeMs = inferenceTimeMs
 
             runOnUiThread {
                 upsertSentence(task.sentenceId, text, true)
                 renderText()
+                
+                // Update perf stats display
+                tvPerfStats.text = String.format("LATENCY: %d ms | DUR: %.2f s", finalInferenceTimeMs, finalAudioDurationSec)
+                
                 tvOfflineStatus.text = "OFFLINE: IDLE"
                 tvOfflineStatus.setTextColor(Color.parseColor("#666666"))
                 scrollView.setBackgroundResource(R.drawable.text_bg)
