@@ -43,7 +43,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var textView: TextView
     private lateinit var levelTrack: View
     private lateinit var levelFill: View
+    private lateinit var loopTrack: View
+    private lateinit var loopFill: View
     private lateinit var tvOnlineDecode: TextView
+    private lateinit var tvLoopUsage: TextView
     private lateinit var tvOfflineStatus: TextView
     private var recordingThread: Thread? = null
     private var offlineThread: Thread? = null
@@ -107,7 +110,10 @@ class MainActivity : AppCompatActivity() {
         textView = findViewById(R.id.my_text)
         levelTrack = findViewById(R.id.level_track)
         levelFill = findViewById(R.id.level_fill)
+        loopTrack = findViewById(R.id.loop_track)
+        loopFill = findViewById(R.id.loop_fill)
         tvOnlineDecode = findViewById(R.id.tv_online_decode)
+        tvLoopUsage = findViewById(R.id.tv_loop_usage)
         tvOfflineStatus = findViewById(R.id.tv_offline_status)
     }
 
@@ -128,8 +134,11 @@ class MainActivity : AppCompatActivity() {
             sentenceEntries.clear()
             runOnUiThread {
                 updateSoundLevel(0f)
+                updateLoopLevel(0f)
                 tvOnlineDecode.text = "DECODE: 0"
                 tvOnlineDecode.setTextColor(Color.parseColor("#666666"))
+                tvLoopUsage.text = "LOOP: 0%"
+                tvLoopUsage.setTextColor(Color.parseColor("#666666"))
                 tvOfflineStatus.text = "OFFLINE: IDLE"
                 tvOfflineStatus.setTextColor(Color.parseColor("#666666"))
             }
@@ -152,8 +161,11 @@ class MainActivity : AppCompatActivity() {
             recordButton.setText(R.string.start)
             runOnUiThread {
                 updateSoundLevel(0f)
+                updateLoopLevel(0f)
                 tvOnlineDecode.text = "DECODE: 0"
                 tvOnlineDecode.setTextColor(Color.parseColor("#666666"))
+                tvLoopUsage.text = "LOOP: 0%"
+                tvLoopUsage.setTextColor(Color.parseColor("#666666"))
                 tvOfflineStatus.text = "OFFLINE: IDLE"
                 tvOfflineStatus.setTextColor(Color.parseColor("#666666"))
             }
@@ -165,11 +177,12 @@ class MainActivity : AppCompatActivity() {
         Log.i(TAG, "processing samples")
         val stream = onlineRecognizer.createStream()
 
-        val interval = 0.05 // i.e., 100 ms
+        val interval = 0.1 // i.e., 50 ms
         val bufferSize = (interval * sampleRateInHz).toInt() // in samples
         val buffer = ShortArray(bufferSize)
 
         while (isRecording) {
+            val loopStartNs = System.nanoTime()
             val ret = audioRecord?.read(buffer, 0, buffer.size)
             if (ret != null && ret > 0) {
                 val samples = FloatArray(ret) { buffer[it] / 32768.0f }
@@ -234,9 +247,14 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
+                val loopElapsedMs = (System.nanoTime() - loopStartNs) / 1_000_000.0
+                val loopUsage = ((loopElapsedMs / (interval * 1000.0)) * 100.0).toInt()
+
                 runOnUiThread {
                     updateSoundLevel(level)
+                    updateLoopLevel(minOf(1.0f, maxOf(0, loopUsage) / 100.0f))
                     tvOnlineDecode.text = "DECODE: $decodeSteps"
+                    tvLoopUsage.text = "LOOP: ${maxOf(0, loopUsage)}%"
                     renderText()
                 }
             }
@@ -386,5 +404,14 @@ class MainActivity : AppCompatActivity() {
         val params = levelFill.layoutParams
         params.width = newWidth
         levelFill.layoutParams = params
+    }
+
+    private fun updateLoopLevel(level: Float) {
+        val trackWidth = loopTrack.width
+        if (trackWidth <= 0) return
+        val newWidth = (trackWidth * level).toInt()
+        val params = loopFill.layoutParams
+        params.width = newWidth
+        loopFill.layoutParams = params
     }
 }
