@@ -68,7 +68,7 @@ class MainActivity : AppCompatActivity() {
     private val audioFormat = AudioFormat.ENCODING_PCM_16BIT
     private var currentSentenceId: Int = 0
     private val sentenceEntries = mutableListOf<SentenceEntry>()
-    private var selectedOfflineType: Int = 15
+    private var selectedOfflineType: Int = 46
 
     @Volatile
     private var isRecording: Boolean = false
