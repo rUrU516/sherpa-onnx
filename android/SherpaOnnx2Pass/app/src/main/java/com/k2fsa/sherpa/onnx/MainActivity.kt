@@ -40,6 +40,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var offlineRecognizer: OfflineRecognizer
     private var audioRecord: AudioRecord? = null
     private lateinit var recordButton: Button
+    private lateinit var offlineModelButton: Button
+    private lateinit var switchingOverlay: View
     private lateinit var textView: TextView
     private lateinit var levelTrack: View
     private lateinit var levelFill: View
@@ -63,6 +65,7 @@ class MainActivity : AppCompatActivity() {
     private val audioFormat = AudioFormat.ENCODING_PCM_16BIT
     private var currentSentenceId: Int = 0
     private val sentenceEntries = mutableListOf<SentenceEntry>()
+    private var selectedOfflineType: Int = 15
 
     @Volatile
     private var isRecording: Boolean = false
@@ -105,6 +108,9 @@ class MainActivity : AppCompatActivity() {
 
         recordButton = findViewById(R.id.record_button)
         recordButton.setOnClickListener { onclick() }
+        offlineModelButton = findViewById(R.id.btn_offline_model)
+        offlineModelButton.setOnClickListener { toggleOfflineModel() }
+        switchingOverlay = findViewById(R.id.switching_overlay)
 
         textView = findViewById(R.id.my_text)
         levelTrack = findViewById(R.id.level_track)
@@ -113,6 +119,7 @@ class MainActivity : AppCompatActivity() {
         tvLoopUsage = findViewById(R.id.tv_loop_usage)
         tvEndpointStatus = findViewById(R.id.tv_endpoint_status)
         tvOfflineStatus = findViewById(R.id.tv_offline_status)
+        updateOfflineModelButtonText()
     }
 
     private fun onclick() {
@@ -337,7 +344,7 @@ class MainActivity : AppCompatActivity() {
         41: 2025 sense-voice int8
         46: 2025 funasr-nano int8
          */
-        val secondType = 46
+        val secondType = selectedOfflineType
         var secondRuleFsts: String?
         secondRuleFsts = null
         Log.i(TAG, "Select model type $secondType for the second pass")
@@ -416,5 +423,35 @@ class MainActivity : AppCompatActivity() {
         val params = levelFill.layoutParams
         params.width = newWidth
         levelFill.layoutParams = params
+    }
+
+    private fun updateOfflineModelButtonText() {
+        val label = when (selectedOfflineType) {
+            15 -> "OFFLINE MODEL: SENSEVOICE"
+            46 -> "OFFLINE MODEL: FUNASR"
+            else -> "OFFLINE MODEL: $selectedOfflineType"
+        }
+        offlineModelButton.text = label
+    }
+
+    private fun toggleOfflineModel() {
+        if (isRecording) {
+            Log.w(TAG, "Cannot switch offline model while recording")
+            return
+        }
+
+        switchingOverlay.visibility = View.VISIBLE
+        recordButton.isEnabled = false
+        offlineModelButton.isEnabled = false
+
+        offlineRecognizer.release()
+        selectedOfflineType = if (selectedOfflineType == 15) 46 else 15
+        initOfflineRecognizer()
+        updateOfflineModelButtonText()
+
+        switchingOverlay.visibility = View.GONE
+        recordButton.isEnabled = true
+        offlineModelButton.isEnabled = true
+        Log.i(TAG, "Switched offline model to type $selectedOfflineType")
     }
 }
