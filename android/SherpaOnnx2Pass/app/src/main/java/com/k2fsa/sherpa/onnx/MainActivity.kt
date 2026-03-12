@@ -405,24 +405,34 @@ class MainActivity : AppCompatActivity() {
                 scrollView.setBackgroundResource(R.drawable.text_bg_active)
             }
 
-            // Calculate duration of the audio samples
+            // Calculate duration of the audio samples (in seconds)
             val audioDurationSec = task.samples.size.toFloat() / sampleRateInHz.toFloat()
 
-            // Measure inference time
-            val startTime = System.currentTimeMillis()
+            // Measure inference time (in seconds)
+            val startTime = System.nanoTime()
             val text = runSecondPassOnSamples(task.samples)
-            val endTime = System.currentTimeMillis()
-            val inferenceTimeMs = endTime - startTime
+            val endTime = System.nanoTime()
+            val inferenceTimeSec = (endTime - startTime) / 1_000_000_000.0
+
+            // Calculate RTF (Real-Time Factor): InferenceTime / AudioDuration
+            // If audio is 0s (shouldn't happen), avoid division by zero
+            val rtf = if (audioDurationSec > 0) inferenceTimeSec / audioDurationSec else 0.0
 
             val finalAudioDurationSec = audioDurationSec
-            val finalInferenceTimeMs = inferenceTimeMs
+            val finalInferenceTimeSec = inferenceTimeSec
+            val finalRtf = rtf
 
             runOnUiThread {
                 upsertSentence(task.sentenceId, text, true)
                 renderText()
                 
-                // Update perf stats display
-                tvPerfStats.text = String.format("LATENCY: %d ms | DUR: %.2f s", finalInferenceTimeMs, finalAudioDurationSec)
+                // Update perf stats display: LATENCY: X.XXX s | DUR: X.XXX s | RTF: 1:X.XX
+                tvPerfStats.text = String.format(
+                    "LAT: %.3f s | DUR: %.3f s | RTF: 1:%.2f", 
+                    finalInferenceTimeSec, 
+                    finalAudioDurationSec, 
+                    finalRtf
+                )
                 
                 tvOfflineStatus.text = "OFFLINE: IDLE"
                 tvOfflineStatus.setTextColor(Color.parseColor("#666666"))
