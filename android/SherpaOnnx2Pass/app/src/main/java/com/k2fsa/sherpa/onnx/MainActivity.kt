@@ -10,6 +10,7 @@ import android.graphics.Color
 import android.util.Log
 import android.view.View
 import android.widget.Button
+import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -43,6 +44,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var offlineModelButton: Button
     private lateinit var switchingOverlay: View
     private lateinit var tvCurrentModel: TextView
+    private lateinit var scrollView: ScrollView
     private lateinit var textView: TextView
     private lateinit var levelTrack: View
     private lateinit var levelFill: View
@@ -113,6 +115,7 @@ class MainActivity : AppCompatActivity() {
         offlineModelButton.setOnClickListener { toggleOfflineModel() }
         switchingOverlay = findViewById(R.id.switching_overlay)
         tvCurrentModel = findViewById(R.id.tv_current_model)
+        scrollView = findViewById(R.id.scroll_view)
 
         textView = findViewById(R.id.my_text)
         levelTrack = findViewById(R.id.level_track)
@@ -374,6 +377,7 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread {
                 tvOfflineStatus.text = "OFFLINE: PROCESSING"
                 tvOfflineStatus.setTextColor(Color.WHITE)
+                scrollView.setBackgroundResource(R.drawable.text_bg_active)
             }
 
             val text = runSecondPassOnSamples(task.samples)
@@ -383,6 +387,7 @@ class MainActivity : AppCompatActivity() {
                 renderText()
                 tvOfflineStatus.text = "OFFLINE: IDLE"
                 tvOfflineStatus.setTextColor(Color.parseColor("#666666"))
+                scrollView.setBackgroundResource(R.drawable.text_bg)
             }
         }
     }
@@ -437,6 +442,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun getOfflineModelShortName(type: Int): String {
+        return when (type) {
+            15 -> "SENSEVOICE"
+            41 -> "SENSEVOICE"
+            46 -> "FUNASR"
+            else -> "MODEL $type"
+        }
+    }
+
     private fun updateOfflineModelButtonText() {
         val label = when (selectedOfflineType) {
             15 -> "OFFLINE MODEL: SENSEVOICE"
@@ -457,10 +471,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         val targetType = if (selectedOfflineType == 15) 46 else 15
-        val targetName = getOfflineModelFullName(targetType)
+        val targetShortName = getOfflineModelShortName(targetType)
 
         val switchingMessage = findViewById<TextView>(R.id.tv_switching_message)
-        switchingMessage.text = "SWITCHING TO:\n$targetName"
+        switchingMessage.text = "SWITCHING TO $targetShortName..."
 
         switchingOverlay.visibility = View.VISIBLE
         recordButton.isEnabled = false
