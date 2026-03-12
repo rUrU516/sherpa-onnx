@@ -25,8 +25,6 @@ class MainActivity : AppCompatActivity() {
     private val permissions: Array<String> = arrayOf(Manifest.permission.RECORD_AUDIO)
 
     private data class OfflineTask(
-        val taskIdx: Int,
-        val previousText: String,
         val samples: FloatArray
     )
 
@@ -50,8 +48,8 @@ class MainActivity : AppCompatActivity() {
     // since the AudioRecord.read(float[]) needs API level >= 23
     // but we are targeting API level >= 21
     private val audioFormat = AudioFormat.ENCODING_PCM_16BIT
-    private var idx: Int = 0
-    private var lastText: String = ""
+    private var finalizedText: String = ""
+    private var temporaryText: String = ""
 
     @Volatile
     private var isRecording: Boolean = false
@@ -112,8 +110,8 @@ class MainActivity : AppCompatActivity() {
             isRecording = true
             samplesBuffer.clear()
             textView.text = ""
-            lastText = ""
-            idx = 0
+            finalizedText = ""
+            temporaryText = ""
             runOnUiThread {
                 tvOfflineStatus.text = "OFFLINE: IDLE"
                 tvOfflineStatus.setTextColor(Color.parseColor("#666666"))
@@ -162,17 +160,9 @@ class MainActivity : AppCompatActivity() {
                     onlineRecognizer.decode(stream)
                 }
                 val isEndpoint = onlineRecognizer.isEndpoint(stream)
-                var textToDisplay = lastText
 
                 var text = onlineRecognizer.getResult(stream).text
-                if (text.isNotBlank()) {
-                    textToDisplay = if (lastText.isBlank()) {
-                        // textView.text = "${idx}: ${text}"
-                        "${idx}: $text"
-                    } else {
-                        "${lastText}\n${idx}: $text"
-                    }
-                }
+                temporaryText = text
 
                 if (isEndpoint) {
                     onlineRecognizer.reset(stream)
@@ -199,20 +189,16 @@ class MainActivity : AppCompatActivity() {
 
                         offlineTaskQueue.offer(
                             OfflineTask(
-                                taskIdx = idx,
-                                previousText = lastText,
                                 samples = samplesForSecondPass
                             )
                         )
-
-                        idx += 1
                     } else {
                         samplesBuffer.clear()
                     }
                 }
 
                 runOnUiThread {
-                    textView.text = textToDisplay.lowercase()
+                    renderText()
                 }
             }
         }
@@ -312,15 +298,15 @@ class MainActivity : AppCompatActivity() {
             }
 
             val text = runSecondPassOnSamples(task.samples)
-            val updatedText = if (task.previousText.isBlank()) {
-                "${task.taskIdx}: $text"
-            } else {
-                "${task.previousText}\n${task.taskIdx}: $text"
-            }
 
             runOnUiThread {
-                lastText = updatedText
-                textView.text = lastText.lowercase()
+                finalizedText = if (finalizedText.isBlank()) {
+                    text
+                } else {
+                    "$finalizedText $text"
+                }
+                temporaryText = ""
+                renderText()
                 tvOfflineStatus.text = "OFFLINE: IDLE"
                 tvOfflineStatus.setTextColor(Color.parseColor("#666666"))
             }
@@ -334,5 +320,15 @@ class MainActivity : AppCompatActivity() {
         val result = offlineRecognizer.getResult(stream)
         stream.release()
         return result.text
+    }
+
+    private fun renderText() {
+        val combined = when {
+            finalizedText.isBlank() && temporaryText.isBlank() -> ""
+            finalizedText.isBlank() -> temporaryText
+            temporaryText.isBlank() -> finalizedText
+            else -> "$finalizedText $temporaryText"
+        }
+        textView.text = combined.lowercase()
     }
 }
