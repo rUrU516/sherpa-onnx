@@ -47,6 +47,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var loopFill: View
     private lateinit var tvOnlineDecode: TextView
     private lateinit var tvLoopUsage: TextView
+    private lateinit var tvEndpointStatus: TextView
     private lateinit var tvOfflineStatus: TextView
     private var recordingThread: Thread? = null
     private var offlineThread: Thread? = null
@@ -114,6 +115,7 @@ class MainActivity : AppCompatActivity() {
         loopFill = findViewById(R.id.loop_fill)
         tvOnlineDecode = findViewById(R.id.tv_online_decode)
         tvLoopUsage = findViewById(R.id.tv_loop_usage)
+        tvEndpointStatus = findViewById(R.id.tv_endpoint_status)
         tvOfflineStatus = findViewById(R.id.tv_offline_status)
     }
 
@@ -139,6 +141,8 @@ class MainActivity : AppCompatActivity() {
                 tvOnlineDecode.setTextColor(Color.parseColor("#666666"))
                 tvLoopUsage.text = "LOOP: 0%"
                 tvLoopUsage.setTextColor(Color.parseColor("#666666"))
+                tvEndpointStatus.text = "ENDPOINT: NO"
+                tvEndpointStatus.setTextColor(Color.parseColor("#666666"))
                 tvOfflineStatus.text = "OFFLINE: IDLE"
                 tvOfflineStatus.setTextColor(Color.parseColor("#666666"))
             }
@@ -166,6 +170,8 @@ class MainActivity : AppCompatActivity() {
                 tvOnlineDecode.setTextColor(Color.parseColor("#666666"))
                 tvLoopUsage.text = "LOOP: 0%"
                 tvLoopUsage.setTextColor(Color.parseColor("#666666"))
+                tvEndpointStatus.text = "ENDPOINT: NO"
+                tvEndpointStatus.setTextColor(Color.parseColor("#666666"))
                 tvOfflineStatus.text = "OFFLINE: IDLE"
                 tvOfflineStatus.setTextColor(Color.parseColor("#666666"))
             }
@@ -177,7 +183,7 @@ class MainActivity : AppCompatActivity() {
         Log.i(TAG, "processing samples")
         val stream = onlineRecognizer.createStream()
 
-        val interval = 0.1 // i.e., 50 ms
+        val interval = 0.05 // i.e., 100 ms
         val bufferSize = (interval * sampleRateInHz).toInt() // in samples
         val buffer = ShortArray(bufferSize)
 
@@ -214,11 +220,22 @@ class MainActivity : AppCompatActivity() {
                 if (isEndpoint) {
                     onlineRecognizer.reset(stream)
 
+                    var totalSamples = 0
+                    for (a in samplesBuffer) {
+                        totalSamples += a.size
+                    }
+                    val endpointDurationSec = totalSamples.toFloat() / sampleRateInHz.toFloat()
+
+                    runOnUiThread {
+                        tvEndpointStatus.text = "ENDPOINT: HIT (${String.format("%.1f", endpointDurationSec)}s)"
+                        tvEndpointStatus.setTextColor(Color.WHITE)
+                        tvEndpointStatus.postDelayed({
+                            tvEndpointStatus.text = "ENDPOINT: NO"
+                            tvEndpointStatus.setTextColor(Color.parseColor("#666666"))
+                        }, 500)
+                    }
+
                     if (text.isNotBlank()) {
-                        var totalSamples = 0
-                        for (a in samplesBuffer) {
-                            totalSamples += a.size
-                        }
                         val mergedSamples = FloatArray(totalSamples)
                         var i = 0
                         for (a in samplesBuffer) {
@@ -241,6 +258,7 @@ class MainActivity : AppCompatActivity() {
                                 samples = samplesForSecondPass
                             )
                         )
+
                         currentSentenceId += 1
                     } else {
                         samplesBuffer.clear()
