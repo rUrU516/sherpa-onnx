@@ -6,12 +6,13 @@ import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.os.Bundle
-import android.text.method.ScrollingMovementMethod
 import android.util.Log
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
 private const val TAG = "sherpa-onnx"
@@ -22,12 +23,20 @@ private const val REQUEST_RECORD_AUDIO_PERMISSION = 200
 class MainActivity : AppCompatActivity() {
     private val permissions: Array<String> = arrayOf(Manifest.permission.RECORD_AUDIO)
 
+    private data class OfflineTask(
+        val taskIdx: Int,
+        val previousText: String,
+        val samples: FloatArray
+    )
+
     private lateinit var onlineRecognizer: OnlineRecognizer
     private lateinit var offlineRecognizer: OfflineRecognizer
     private var audioRecord: AudioRecord? = null
     private lateinit var recordButton: Button
     private lateinit var textView: TextView
     private var recordingThread: Thread? = null
+    private var offlineThread: Thread? = null
+    private val offlineTaskQueue = LinkedBlockingQueue<OfflineTask>()
 
     private val audioSource = MediaRecorder.AudioSource.MIC
     private val sampleRateInHz = 16000
@@ -85,7 +94,6 @@ class MainActivity : AppCompatActivity() {
         recordButton.setOnClickListener { onclick() }
 
         textView = findViewById(R.id.my_text)
-        textView.movementMethod = ScrollingMovementMethod()
     }
 
     private fun onclick() {
@@ -103,6 +111,12 @@ class MainActivity : AppCompatActivity() {
             textView.text = ""
             lastText = ""
             idx = 0
+
+            offlineTaskQueue.clear()
+
+            offlineThread = thread(true) {
+                processOfflineTasks()
+            }
 
             recordingThread = thread(true) {
                 processSamples()
@@ -153,8 +167,33 @@ class MainActivity : AppCompatActivity() {
                     onlineRecognizer.reset(stream)
 
                     if (text.isNotBlank()) {
-                        text = runSecondPass()
-                        lastText = "${lastText}\n${idx}: $text"
+                        var totalSamples = 0
+                        for (a in samplesBuffer) {
+                            totalSamples += a.size
+                        }
+                        val mergedSamples = FloatArray(totalSamples)
+                        var i = 0
+                        for (a in samplesBuffer) {
+                            for (s in a) {
+                                mergedSamples[i] = s
+                                i += 1
+                            }
+                        }
+
+                        val n = maxOf(0, mergedSamples.size - 8000)
+                        val samplesForSecondPass = mergedSamples.sliceArray(0..n)
+
+                        samplesBuffer.clear()
+                        samplesBuffer.add(mergedSamples.sliceArray(n until mergedSamples.size))
+
+                        offlineTaskQueue.offer(
+                            OfflineTask(
+                                taskIdx = idx,
+                                previousText = lastText,
+                                samples = samplesForSecondPass
+                            )
+                        )
+
                         idx += 1
                     } else {
                         samplesBuffer.clear()
@@ -211,7 +250,7 @@ class MainActivity : AppCompatActivity() {
             featConfig = getFeatureConfig(sampleRate = sampleRateInHz, featureDim = 80),
             modelConfig = getModelConfig(type = firstType)!!,
             endpointConfig = getEndpointConfig(),
-            enableEndpoint = true,
+            enableEndpoint = true
         )
         if (firstRuleFsts != null) {
             config.ruleFsts = firstRuleFsts;
@@ -219,7 +258,7 @@ class MainActivity : AppCompatActivity() {
 
         onlineRecognizer = OnlineRecognizer(
             assetManager = application.assets,
-            config = config,
+            config = config
         )
     }
 
@@ -239,7 +278,7 @@ class MainActivity : AppCompatActivity() {
 
         val config = OfflineRecognizerConfig(
             featConfig = getFeatureConfig(sampleRate = sampleRateInHz, featureDim = 80),
-            modelConfig = getOfflineModelConfig(type = secondType)!!,
+            modelConfig = getOfflineModelConfig(type = secondType)!!
         )
 
         if (secondRuleFsts != null) {
@@ -248,40 +287,33 @@ class MainActivity : AppCompatActivity() {
 
         offlineRecognizer = OfflineRecognizer(
             assetManager = application.assets,
-            config = config,
+            config = config
         )
     }
 
-    private fun runSecondPass(): String {
-        var totalSamples = 0
-        for (a in samplesBuffer) {
-            totalSamples += a.size
-        }
-        var i = 0
+    private fun processOfflineTasks() {
+        while (isRecording || offlineTaskQueue.isNotEmpty()) {
+            val task = offlineTaskQueue.poll(100, TimeUnit.MILLISECONDS) ?: continue
+            val text = runSecondPassOnSamples(task.samples)
+            val updatedText = if (task.previousText.isBlank()) {
+                "${task.taskIdx}: $text"
+            } else {
+                "${task.previousText}\n${task.taskIdx}: $text"
+            }
 
-        val samples = FloatArray(totalSamples)
-
-        // todo(fangjun): Make it more efficient
-        for (a in samplesBuffer) {
-            for (s in a) {
-                samples[i] = s
-                i += 1
+            runOnUiThread {
+                lastText = updatedText
+                textView.text = lastText.lowercase()
             }
         }
+    }
 
-
-        val n = maxOf(0, samples.size - 8000)
-
-        samplesBuffer.clear()
-        samplesBuffer.add(samples.sliceArray(n until samples.size))
-
+    private fun runSecondPassOnSamples(samples: FloatArray): String {
         val stream = offlineRecognizer.createStream()
-        stream.acceptWaveform(samples.sliceArray(0..n), sampleRateInHz)
+        stream.acceptWaveform(samples, sampleRateInHz)
         offlineRecognizer.decode(stream)
         val result = offlineRecognizer.getResult(stream)
-
         stream.release()
-
         return result.text
     }
 }
