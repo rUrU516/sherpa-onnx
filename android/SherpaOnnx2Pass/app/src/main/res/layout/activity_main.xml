@@ -8,6 +8,35 @@
     android:background="#000000"
     tools:context=".MainActivity">
 
+    <LinearLayout
+        android:id="@+id/status_bar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        android:paddingStart="12dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="8dp"
+        android:background="#111111"
+        android:orientation="horizontal"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/tv_offline_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="OFFLINE: IDLE"
+            android:textColor="#666666"
+            android:fontFamily="monospace"
+            android:typeface="monospace"
+            android:textSize="12sp"
+            android:letterSpacing="0.05" />
+    </LinearLayout>
+
     <!-- ScrollView Container -->
     <ScrollView
         android:id="@+id/scroll_view"
@@ -16,9 +45,12 @@
         android:fillViewport="true"
         android:scrollbars="vertical"
         android:fadeScrollbars="false"
-        android:layout_margin="16dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
         android:background="@drawable/text_bg"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/status_bar"
         app:layout_constraintBottom_toTopOf="@id/record_button"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">

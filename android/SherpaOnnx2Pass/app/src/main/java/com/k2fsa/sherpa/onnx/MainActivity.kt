@@ -6,6 +6,7 @@ import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.os.Bundle
+import android.graphics.Color
 import android.util.Log
 import android.widget.Button
 import android.widget.TextView
@@ -34,6 +35,7 @@ class MainActivity : AppCompatActivity() {
     private var audioRecord: AudioRecord? = null
     private lateinit var recordButton: Button
     private lateinit var textView: TextView
+    private lateinit var tvOfflineStatus: TextView
     private var recordingThread: Thread? = null
     private var offlineThread: Thread? = null
     private val offlineTaskQueue = LinkedBlockingQueue<OfflineTask>()
@@ -94,6 +96,7 @@ class MainActivity : AppCompatActivity() {
         recordButton.setOnClickListener { onclick() }
 
         textView = findViewById(R.id.my_text)
+        tvOfflineStatus = findViewById(R.id.tv_offline_status)
     }
 
     private fun onclick() {
@@ -111,6 +114,10 @@ class MainActivity : AppCompatActivity() {
             textView.text = ""
             lastText = ""
             idx = 0
+            runOnUiThread {
+                tvOfflineStatus.text = "OFFLINE: IDLE"
+                tvOfflineStatus.setTextColor(Color.parseColor("#666666"))
+            }
 
             offlineTaskQueue.clear()
 
@@ -128,6 +135,10 @@ class MainActivity : AppCompatActivity() {
             audioRecord!!.release()
             audioRecord = null
             recordButton.setText(R.string.start)
+            runOnUiThread {
+                tvOfflineStatus.text = "OFFLINE: IDLE"
+                tvOfflineStatus.setTextColor(Color.parseColor("#666666"))
+            }
             Log.i(TAG, "Stopped recording")
         }
     }
@@ -294,6 +305,12 @@ class MainActivity : AppCompatActivity() {
     private fun processOfflineTasks() {
         while (isRecording || offlineTaskQueue.isNotEmpty()) {
             val task = offlineTaskQueue.poll(100, TimeUnit.MILLISECONDS) ?: continue
+
+            runOnUiThread {
+                tvOfflineStatus.text = "OFFLINE: PROCESSING"
+                tvOfflineStatus.setTextColor(Color.WHITE)
+            }
+
             val text = runSecondPassOnSamples(task.samples)
             val updatedText = if (task.previousText.isBlank()) {
                 "${task.taskIdx}: $text"
@@ -304,6 +321,8 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread {
                 lastText = updatedText
                 textView.text = lastText.lowercase()
+                tvOfflineStatus.text = "OFFLINE: IDLE"
+                tvOfflineStatus.setTextColor(Color.parseColor("#666666"))
             }
         }
     }
