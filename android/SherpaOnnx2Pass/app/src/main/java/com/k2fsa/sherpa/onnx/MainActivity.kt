@@ -360,6 +360,18 @@ class MainActivity : AppCompatActivity() {
             modelConfig = getOfflineModelConfig(type = secondType)!!
         )
 
+        // Debug: Log FunASR Nano configuration
+        if (secondType == 46) {
+            val funasrConfig = config.modelConfig.funasrNano
+            Log.i(TAG, "=== FunASR Nano Debug Info ===")
+            Log.i(TAG, "SystemPrompt: ${funasrConfig.systemPrompt}")
+            Log.i(TAG, "UserPrompt: ${funasrConfig.userPrompt}")
+            Log.i(TAG, "Language: ${funasrConfig.language}")
+            Log.i(TAG, "ITN: ${funasrConfig.itn}")
+            Log.i(TAG, "Debug Mode: ${config.modelConfig.debug}")
+            Log.i(TAG, "==============================")
+        }
+
         if (secondRuleFsts != null) {
             config.ruleFsts = secondRuleFsts
         }

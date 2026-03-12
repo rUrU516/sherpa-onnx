@@ -60,12 +60,12 @@ data class OfflineFunAsrNanoModelConfig(
     var embedding: String = "",
     var tokenizer: String = "",
     var systemPrompt: String = "You are a helpful assistant.",
-    var userPrompt: String = "语音转写：",
-    var maxNewTokens: Int = 512,
+    var userPrompt: String = "Translate to English：",
+    var maxNewTokens: Int = 1024,
     var temperature: Float = 1e-6f,
     var topP: Float = 0.8f,
     var seed: Int = 42,
-    var language: String = "",
+    var language: String = "en",
     var itn: Boolean = true,
     var hotwords: String = "",
 )
@@ -781,16 +781,42 @@ fun getOfflineModelConfig(type: Int): OfflineModelConfig? {
             )
         }
 
+        /*
+        data class OfflineFunAsrNanoModelConfig(
+            var encoderAdaptor: String = "",
+            var llm: String = "",
+            var embedding: String = "",
+            var tokenizer: String = "",
+            var systemPrompt: String = "You are a helpful assistant.",
+            var userPrompt: String = "Translate to English：",
+            var maxNewTokens: Int = 512,
+            var temperature: Float = 1e-6f,
+            var topP: Float = 0.8f,
+            var seed: Int = 42,
+            var language: String = "en",
+            var itn: Boolean = true,
+            var hotwords: String = "",
+        )
+         */
+
         46 -> {
             val modelDir = "sherpa-onnx-funasr-nano-int8-2025-12-30"
             return OfflineModelConfig(
                 funasrNano = OfflineFunAsrNanoModelConfig(
+                    temperature = 0.8f,
+                    maxNewTokens = 1024,
                     encoderAdaptor = "$modelDir/encoder_adaptor.int8.onnx",
                     llm = "$modelDir/llm.int8.onnx",
                     embedding = "$modelDir/embedding.int8.onnx",
                     tokenizer = "$modelDir/Qwen3-0.6B",
+                    systemPrompt = "你是一个专业的健身教练",
+                    userPrompt = "语音识别: ",
+                    language = "中文",
+                    itn = true,
+                    hotwords = ""
                 ),
                 tokens = "",
+                debug = true,
             )
         }
 
