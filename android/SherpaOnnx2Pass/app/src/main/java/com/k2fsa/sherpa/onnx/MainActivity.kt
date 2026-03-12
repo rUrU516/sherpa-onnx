@@ -42,6 +42,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var recordButton: Button
     private lateinit var offlineModelButton: Button
     private lateinit var switchingOverlay: View
+    private lateinit var tvCurrentModel: TextView
     private lateinit var textView: TextView
     private lateinit var levelTrack: View
     private lateinit var levelFill: View
@@ -111,6 +112,7 @@ class MainActivity : AppCompatActivity() {
         offlineModelButton = findViewById(R.id.btn_offline_model)
         offlineModelButton.setOnClickListener { toggleOfflineModel() }
         switchingOverlay = findViewById(R.id.switching_overlay)
+        tvCurrentModel = findViewById(R.id.tv_current_model)
 
         textView = findViewById(R.id.my_text)
         levelTrack = findViewById(R.id.level_track)
@@ -120,6 +122,7 @@ class MainActivity : AppCompatActivity() {
         tvEndpointStatus = findViewById(R.id.tv_endpoint_status)
         tvOfflineStatus = findViewById(R.id.tv_offline_status)
         updateOfflineModelButtonText()
+        updateCurrentModelDisplay()
     }
 
     private fun onclick() {
@@ -425,6 +428,15 @@ class MainActivity : AppCompatActivity() {
         levelFill.layoutParams = params
     }
 
+    private fun getOfflineModelFullName(type: Int): String {
+        return when (type) {
+            15 -> "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2024-07-17"
+            41 -> "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09"
+            46 -> "sherpa-onnx-funasr-nano-int8-2025-12-30"
+            else -> "unknown-model-type-$type"
+        }
+    }
+
     private fun updateOfflineModelButtonText() {
         val label = when (selectedOfflineType) {
             15 -> "OFFLINE MODEL: SENSEVOICE"
@@ -434,24 +446,49 @@ class MainActivity : AppCompatActivity() {
         offlineModelButton.text = label
     }
 
+    private fun updateCurrentModelDisplay() {
+        tvCurrentModel.text = "MODEL: ${getOfflineModelFullName(selectedOfflineType)}"
+    }
+
     private fun toggleOfflineModel() {
         if (isRecording) {
             Log.w(TAG, "Cannot switch offline model while recording")
             return
         }
 
+        val targetType = if (selectedOfflineType == 15) 46 else 15
+        val targetName = getOfflineModelFullName(targetType)
+
+        val switchingMessage = findViewById<TextView>(R.id.tv_switching_message)
+        switchingMessage.text = "SWITCHING TO:\n$targetName"
+
         switchingOverlay.visibility = View.VISIBLE
         recordButton.isEnabled = false
         offlineModelButton.isEnabled = false
 
-        offlineRecognizer.release()
-        selectedOfflineType = if (selectedOfflineType == 15) 46 else 15
-        initOfflineRecognizer()
-        updateOfflineModelButtonText()
+        thread(true) {
+            try {
+                offlineRecognizer.release()
+                selectedOfflineType = targetType
+                initOfflineRecognizer()
 
-        switchingOverlay.visibility = View.GONE
-        recordButton.isEnabled = true
-        offlineModelButton.isEnabled = true
-        Log.i(TAG, "Switched offline model to type $selectedOfflineType")
+                runOnUiThread {
+                    updateOfflineModelButtonText()
+                    updateCurrentModelDisplay()
+                    switchingOverlay.visibility = View.GONE
+                    recordButton.isEnabled = true
+                    offlineModelButton.isEnabled = true
+                }
+
+                Log.i(TAG, "Switched offline model to type $selectedOfflineType")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to switch offline model", e)
+                runOnUiThread {
+                    switchingOverlay.visibility = View.GONE
+                    recordButton.isEnabled = true
+                    offlineModelButton.isEnabled = true
+                }
+            }
+        }
     }
 }
