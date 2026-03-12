@@ -154,7 +154,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="24dp"
-        android:layout_marginEnd="24dp"
+        android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
         android:text="OFFLINE MODEL: SENSEVOICE"
         android:textAllCaps="true"
@@ -172,7 +172,32 @@
         app:backgroundTint="@null"
         app:layout_constraintBottom_toTopOf="@id/record_button"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toStartOf="@id/btn_mic_mute"
+        app:layout_constraintHorizontal_chainStyle="packed"
+        app:layout_constraintHorizontal_bias="0" />
+
+    <Button
+        android:id="@+id/btn_mic_mute"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="8dp"
+        android:text="🎤"
+        android:textAllCaps="false"
+        android:textColor="#FFFFFF"
+        android:background="@drawable/btn_outline_selector"
+        android:fontFamily="monospace"
+        android:typeface="monospace"
+        android:textSize="16sp"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        app:backgroundTint="@null"
+        app:layout_constraintBottom_toTopOf="@id/record_button"
+        app:layout_constraintStart_toEndOf="@id/btn_offline_model"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/btn_offline_model"
+        app:layout_constraintBottom_toBottomOf="@id/btn_offline_model" />
 
     <!-- Big Button at the Bottom: Web Style -->
     <Button

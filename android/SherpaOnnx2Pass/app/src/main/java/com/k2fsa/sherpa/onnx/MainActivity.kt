@@ -42,11 +42,15 @@ class MainActivity : AppCompatActivity() {
     private var audioRecord: AudioRecord? = null
     private lateinit var recordButton: Button
     private lateinit var offlineModelButton: Button
+    private lateinit var micMuteButton: Button
     private lateinit var switchingOverlay: View
     private lateinit var tvCurrentModel: TextView
     private lateinit var tvPerfStats: TextView
     private lateinit var scrollView: ScrollView
     private lateinit var textView: TextView
+    
+    @Volatile
+    private var isMuted: Boolean = false
     private lateinit var levelTrack: View
     private lateinit var levelFill: View
     private lateinit var tvOnlineDecode: TextView
@@ -114,6 +118,8 @@ class MainActivity : AppCompatActivity() {
         recordButton.setOnClickListener { onclick() }
         offlineModelButton = findViewById(R.id.btn_offline_model)
         offlineModelButton.setOnClickListener { toggleOfflineModel() }
+        micMuteButton = findViewById(R.id.btn_mic_mute)
+        micMuteButton.setOnClickListener { toggleMicMute() }
         switchingOverlay = findViewById(R.id.switching_overlay)
         tvCurrentModel = findViewById(R.id.tv_current_model)
         tvPerfStats = findViewById(R.id.tv_perf_stats)
@@ -200,7 +206,12 @@ class MainActivity : AppCompatActivity() {
             val loopStartNs = System.nanoTime()
             val ret = audioRecord?.read(buffer, 0, buffer.size)
             if (ret != null && ret > 0) {
-                val samples = FloatArray(ret) { buffer[it] / 32768.0f }
+                val samples = if (isMuted) {
+                    // If muted, fill with 0.0f (silence) but keep the length
+                    FloatArray(ret) { 0.0f }
+                } else {
+                    FloatArray(ret) { buffer[it] / 32768.0f }
+                }
                 samplesBuffer.add(samples)
 
                 var energy = 0.0f
@@ -490,6 +501,20 @@ class MainActivity : AppCompatActivity() {
 
     private fun updateCurrentModelDisplay() {
         tvCurrentModel.text = "MODEL: ${getOfflineModelFullName(selectedOfflineType)}"
+    }
+
+    private fun toggleMicMute() {
+        isMuted = !isMuted
+        runOnUiThread {
+            if (isMuted) {
+                micMuteButton.text = "🔇"
+                micMuteButton.alpha = 0.5f
+            } else {
+                micMuteButton.text = "🎤"
+                micMuteButton.alpha = 1.0f
+            }
+        }
+        Log.i(TAG, "Microphone muted: $isMuted")
     }
 
     private fun toggleOfflineModel() {
