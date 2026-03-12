@@ -8,6 +8,7 @@ import android.media.MediaRecorder
 import android.os.Bundle
 import android.graphics.Color
 import android.util.Log
+import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -40,6 +41,8 @@ class MainActivity : AppCompatActivity() {
     private var audioRecord: AudioRecord? = null
     private lateinit var recordButton: Button
     private lateinit var textView: TextView
+    private lateinit var levelTrack: View
+    private lateinit var levelFill: View
     private lateinit var tvOnlineDecode: TextView
     private lateinit var tvOfflineStatus: TextView
     private var recordingThread: Thread? = null
@@ -102,6 +105,8 @@ class MainActivity : AppCompatActivity() {
         recordButton.setOnClickListener { onclick() }
 
         textView = findViewById(R.id.my_text)
+        levelTrack = findViewById(R.id.level_track)
+        levelFill = findViewById(R.id.level_fill)
         tvOnlineDecode = findViewById(R.id.tv_online_decode)
         tvOfflineStatus = findViewById(R.id.tv_offline_status)
     }
@@ -122,6 +127,7 @@ class MainActivity : AppCompatActivity() {
             currentSentenceId = 0
             sentenceEntries.clear()
             runOnUiThread {
+                updateSoundLevel(0f)
                 tvOnlineDecode.text = "DECODE: 0"
                 tvOnlineDecode.setTextColor(Color.parseColor("#666666"))
                 tvOfflineStatus.text = "OFFLINE: IDLE"
@@ -145,6 +151,7 @@ class MainActivity : AppCompatActivity() {
             audioRecord = null
             recordButton.setText(R.string.start)
             runOnUiThread {
+                updateSoundLevel(0f)
                 tvOnlineDecode.text = "DECODE: 0"
                 tvOnlineDecode.setTextColor(Color.parseColor("#666666"))
                 tvOfflineStatus.text = "OFFLINE: IDLE"
@@ -158,7 +165,7 @@ class MainActivity : AppCompatActivity() {
         Log.i(TAG, "processing samples")
         val stream = onlineRecognizer.createStream()
 
-        val interval = 0.1 // i.e., 100 ms
+        val interval = 0.05 // i.e., 100 ms
         val bufferSize = (interval * sampleRateInHz).toInt() // in samples
         val buffer = ShortArray(bufferSize)
 
@@ -167,6 +174,13 @@ class MainActivity : AppCompatActivity() {
             if (ret != null && ret > 0) {
                 val samples = FloatArray(ret) { buffer[it] / 32768.0f }
                 samplesBuffer.add(samples)
+
+                var energy = 0.0f
+                for (s in samples) {
+                    energy += s * s
+                }
+                val rms = kotlin.math.sqrt(energy / samples.size)
+                val level = minOf(1.0f, rms * 8.0f)
 
                 stream.acceptWaveform(samples, sampleRate = sampleRateInHz)
                 var decodeSteps = 0
@@ -221,6 +235,7 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 runOnUiThread {
+                    updateSoundLevel(level)
                     tvOnlineDecode.text = "DECODE: $decodeSteps"
                     renderText()
                 }
@@ -362,5 +377,14 @@ class MainActivity : AppCompatActivity() {
             .sortedBy { it.id }
             .joinToString(separator = "") { it.text }
         textView.text = combined.lowercase()
+    }
+
+    private fun updateSoundLevel(level: Float) {
+        val trackWidth = levelTrack.width
+        if (trackWidth <= 0) return
+        val newWidth = (trackWidth * level).toInt()
+        val params = levelFill.layoutParams
+        params.width = newWidth
+        levelFill.layoutParams = params
     }
 }

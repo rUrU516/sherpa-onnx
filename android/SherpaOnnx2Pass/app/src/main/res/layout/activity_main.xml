@@ -25,6 +25,20 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
+        <FrameLayout
+            android:id="@+id/level_track"
+            android:layout_width="match_parent"
+            android:layout_height="3dp"
+            android:layout_marginBottom="8dp"
+            android:background="#222222">
+
+            <View
+                android:id="@+id/level_fill"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:background="#FFFFFF" />
+        </FrameLayout>
+
         <TextView
             android:id="@+id/tv_online_decode"
             android:layout_width="wrap_content"
