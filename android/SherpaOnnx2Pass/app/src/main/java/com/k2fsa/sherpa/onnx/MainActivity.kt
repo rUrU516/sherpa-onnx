@@ -162,7 +162,9 @@ class MainActivity : AppCompatActivity() {
                 val isEndpoint = onlineRecognizer.isEndpoint(stream)
 
                 var text = onlineRecognizer.getResult(stream).text
-                temporaryText = text
+                if (text.isNotBlank()) {
+                    temporaryText = text
+                }
 
                 if (isEndpoint) {
                     onlineRecognizer.reset(stream)
@@ -303,7 +305,7 @@ class MainActivity : AppCompatActivity() {
                 finalizedText = if (finalizedText.isBlank()) {
                     text
                 } else {
-                    "$finalizedText $text"
+                    "$finalizedText$text"
                 }
                 temporaryText = ""
                 renderText()
@@ -327,7 +329,7 @@ class MainActivity : AppCompatActivity() {
             finalizedText.isBlank() && temporaryText.isBlank() -> ""
             finalizedText.isBlank() -> temporaryText
             temporaryText.isBlank() -> finalizedText
-            else -> "$finalizedText $temporaryText"
+            else -> "$finalizedText$temporaryText"
         }
         textView.text = combined.lowercase()
     }
