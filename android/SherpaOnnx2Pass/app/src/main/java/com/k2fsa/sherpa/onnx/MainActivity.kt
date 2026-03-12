@@ -25,7 +25,14 @@ class MainActivity : AppCompatActivity() {
     private val permissions: Array<String> = arrayOf(Manifest.permission.RECORD_AUDIO)
 
     private data class OfflineTask(
+        val sentenceId: Int,
         val samples: FloatArray
+    )
+
+    private data class SentenceEntry(
+        val id: Int,
+        var text: String,
+        var isFinal: Boolean
     )
 
     private lateinit var onlineRecognizer: OnlineRecognizer
@@ -48,8 +55,8 @@ class MainActivity : AppCompatActivity() {
     // since the AudioRecord.read(float[]) needs API level >= 23
     // but we are targeting API level >= 21
     private val audioFormat = AudioFormat.ENCODING_PCM_16BIT
-    private var finalizedText: String = ""
-    private var temporaryText: String = ""
+    private var currentSentenceId: Int = 0
+    private val sentenceEntries = mutableListOf<SentenceEntry>()
 
     @Volatile
     private var isRecording: Boolean = false
@@ -110,8 +117,8 @@ class MainActivity : AppCompatActivity() {
             isRecording = true
             samplesBuffer.clear()
             textView.text = ""
-            finalizedText = ""
-            temporaryText = ""
+            currentSentenceId = 0
+            sentenceEntries.clear()
             runOnUiThread {
                 tvOfflineStatus.text = "OFFLINE: IDLE"
                 tvOfflineStatus.setTextColor(Color.parseColor("#666666"))
@@ -163,7 +170,10 @@ class MainActivity : AppCompatActivity() {
 
                 var text = onlineRecognizer.getResult(stream).text
                 if (text.isNotBlank()) {
-                    temporaryText = text
+                    runOnUiThread {
+                        upsertSentence(currentSentenceId, text, false)
+                        renderText()
+                    }
                 }
 
                 if (isEndpoint) {
@@ -189,11 +199,14 @@ class MainActivity : AppCompatActivity() {
                         samplesBuffer.clear()
                         samplesBuffer.add(mergedSamples.sliceArray(n until mergedSamples.size))
 
+                        val finishedSentenceId = currentSentenceId
                         offlineTaskQueue.offer(
                             OfflineTask(
+                                sentenceId = finishedSentenceId,
                                 samples = samplesForSecondPass
                             )
                         )
+                        currentSentenceId += 1
                     } else {
                         samplesBuffer.clear()
                     }
@@ -302,12 +315,7 @@ class MainActivity : AppCompatActivity() {
             val text = runSecondPassOnSamples(task.samples)
 
             runOnUiThread {
-                finalizedText = if (finalizedText.isBlank()) {
-                    text
-                } else {
-                    "$finalizedText$text"
-                }
-                temporaryText = ""
+                upsertSentence(task.sentenceId, text, true)
                 renderText()
                 tvOfflineStatus.text = "OFFLINE: IDLE"
                 tvOfflineStatus.setTextColor(Color.parseColor("#666666"))
@@ -324,13 +332,26 @@ class MainActivity : AppCompatActivity() {
         return result.text
     }
 
-    private fun renderText() {
-        val combined = when {
-            finalizedText.isBlank() && temporaryText.isBlank() -> ""
-            finalizedText.isBlank() -> temporaryText
-            temporaryText.isBlank() -> finalizedText
-            else -> "$finalizedText$temporaryText"
+    private fun upsertSentence(sentenceId: Int, text: String, isFinal: Boolean) {
+        val index = sentenceEntries.indexOfFirst { it.id == sentenceId }
+        if (index >= 0) {
+            sentenceEntries[index].text = text
+            sentenceEntries[index].isFinal = isFinal
+        } else {
+            sentenceEntries.add(
+                SentenceEntry(
+                    id = sentenceId,
+                    text = text,
+                    isFinal = isFinal
+                )
+            )
         }
+    }
+
+    private fun renderText() {
+        val combined = sentenceEntries
+            .sortedBy { it.id }
+            .joinToString(separator = "") { it.text }
         textView.text = combined.lowercase()
     }
 }
