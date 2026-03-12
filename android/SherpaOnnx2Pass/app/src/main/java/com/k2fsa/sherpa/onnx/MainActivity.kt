@@ -43,8 +43,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var textView: TextView
     private lateinit var levelTrack: View
     private lateinit var levelFill: View
-    private lateinit var loopTrack: View
-    private lateinit var loopFill: View
     private lateinit var tvOnlineDecode: TextView
     private lateinit var tvLoopUsage: TextView
     private lateinit var tvEndpointStatus: TextView
@@ -111,8 +109,6 @@ class MainActivity : AppCompatActivity() {
         textView = findViewById(R.id.my_text)
         levelTrack = findViewById(R.id.level_track)
         levelFill = findViewById(R.id.level_fill)
-        loopTrack = findViewById(R.id.loop_track)
-        loopFill = findViewById(R.id.loop_fill)
         tvOnlineDecode = findViewById(R.id.tv_online_decode)
         tvLoopUsage = findViewById(R.id.tv_loop_usage)
         tvEndpointStatus = findViewById(R.id.tv_endpoint_status)
@@ -136,7 +132,6 @@ class MainActivity : AppCompatActivity() {
             sentenceEntries.clear()
             runOnUiThread {
                 updateSoundLevel(0f)
-                updateLoopLevel(0f)
                 tvOnlineDecode.text = "DECODE: 0"
                 tvOnlineDecode.setTextColor(Color.parseColor("#666666"))
                 tvLoopUsage.text = "LOOP: 0%"
@@ -165,7 +160,6 @@ class MainActivity : AppCompatActivity() {
             recordButton.setText(R.string.start)
             runOnUiThread {
                 updateSoundLevel(0f)
-                updateLoopLevel(0f)
                 tvOnlineDecode.text = "DECODE: 0"
                 tvOnlineDecode.setTextColor(Color.parseColor("#666666"))
                 tvLoopUsage.text = "LOOP: 0%"
@@ -270,7 +264,6 @@ class MainActivity : AppCompatActivity() {
 
                 runOnUiThread {
                     updateSoundLevel(level)
-                    updateLoopLevel(minOf(1.0f, maxOf(0, loopUsage) / 200.0f))
                     tvOnlineDecode.text = "DECODE: $decodeSteps"
                     tvLoopUsage.text = "LOOP: ${maxOf(0, loopUsage)}%"
                     renderText()
@@ -422,14 +415,5 @@ class MainActivity : AppCompatActivity() {
         val params = levelFill.layoutParams
         params.width = newWidth
         levelFill.layoutParams = params
-    }
-
-    private fun updateLoopLevel(level: Float) {
-        val trackWidth = loopTrack.width
-        if (trackWidth <= 0) return
-        val newWidth = (trackWidth * level).toInt()
-        val params = loopFill.layoutParams
-        params.width = newWidth
-        loopFill.layoutParams = params
     }
 }
