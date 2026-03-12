@@ -40,6 +40,7 @@ class MainActivity : AppCompatActivity() {
     private var audioRecord: AudioRecord? = null
     private lateinit var recordButton: Button
     private lateinit var textView: TextView
+    private lateinit var tvOnlineDecode: TextView
     private lateinit var tvOfflineStatus: TextView
     private var recordingThread: Thread? = null
     private var offlineThread: Thread? = null
@@ -101,6 +102,7 @@ class MainActivity : AppCompatActivity() {
         recordButton.setOnClickListener { onclick() }
 
         textView = findViewById(R.id.my_text)
+        tvOnlineDecode = findViewById(R.id.tv_online_decode)
         tvOfflineStatus = findViewById(R.id.tv_offline_status)
     }
 
@@ -120,6 +122,8 @@ class MainActivity : AppCompatActivity() {
             currentSentenceId = 0
             sentenceEntries.clear()
             runOnUiThread {
+                tvOnlineDecode.text = "DECODE: 0"
+                tvOnlineDecode.setTextColor(Color.parseColor("#666666"))
                 tvOfflineStatus.text = "OFFLINE: IDLE"
                 tvOfflineStatus.setTextColor(Color.parseColor("#666666"))
             }
@@ -141,6 +145,8 @@ class MainActivity : AppCompatActivity() {
             audioRecord = null
             recordButton.setText(R.string.start)
             runOnUiThread {
+                tvOnlineDecode.text = "DECODE: 0"
+                tvOnlineDecode.setTextColor(Color.parseColor("#666666"))
                 tvOfflineStatus.text = "OFFLINE: IDLE"
                 tvOfflineStatus.setTextColor(Color.parseColor("#666666"))
             }
@@ -163,8 +169,10 @@ class MainActivity : AppCompatActivity() {
                 samplesBuffer.add(samples)
 
                 stream.acceptWaveform(samples, sampleRate = sampleRateInHz)
+                var decodeSteps = 0
                 while (onlineRecognizer.isReady(stream)) {
                     onlineRecognizer.decode(stream)
+                    decodeSteps += 1
                 }
                 val isEndpoint = onlineRecognizer.isEndpoint(stream)
 
@@ -213,6 +221,7 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 runOnUiThread {
+                    tvOnlineDecode.text = "DECODE: $decodeSteps"
                     renderText()
                 }
             }
