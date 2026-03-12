@@ -270,7 +270,7 @@ class MainActivity : AppCompatActivity() {
 
                 runOnUiThread {
                     updateSoundLevel(level)
-                    updateLoopLevel(minOf(1.0f, maxOf(0, loopUsage) / 100.0f))
+                    updateLoopLevel(minOf(1.0f, maxOf(0, loopUsage) / 200.0f))
                     tvOnlineDecode.text = "DECODE: $decodeSteps"
                     tvLoopUsage.text = "LOOP: ${maxOf(0, loopUsage)}%"
                     renderText()
