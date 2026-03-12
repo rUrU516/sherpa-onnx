@@ -335,8 +335,9 @@ class MainActivity : AppCompatActivity() {
         /*
         15: 2024 sense-voice int8
         41: 2025 sense-voice int8
+        46: 2025 funasr-nano int8
          */
-        val secondType = 15
+        val secondType = 46
         var secondRuleFsts: String?
         secondRuleFsts = null
         Log.i(TAG, "Select model type $secondType for the second pass")
