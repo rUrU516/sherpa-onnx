@@ -471,6 +471,9 @@ class MainActivity : AppCompatActivity() {
             .sortedBy { it.id }
             .joinToString(separator = "") { it.text }
         textView.text = combined.lowercase()
+        scrollView.post {
+            scrollView.fullScroll(View.FOCUS_DOWN)
+        }
     }
 
     private fun updateSoundLevel(level: Float) {
@@ -542,6 +545,7 @@ class MainActivity : AppCompatActivity() {
         switchingOverlay.visibility = View.VISIBLE
         recordButton.isEnabled = false
         offlineModelButton.isEnabled = false
+        micMuteButton.isEnabled = false
 
         thread(true) {
             try {
@@ -555,6 +559,7 @@ class MainActivity : AppCompatActivity() {
                     switchingOverlay.visibility = View.GONE
                     recordButton.isEnabled = true
                     offlineModelButton.isEnabled = true
+                    micMuteButton.isEnabled = true
                 }
 
                 Log.i(TAG, "Switched offline model to type $selectedOfflineType")
@@ -564,6 +569,7 @@ class MainActivity : AppCompatActivity() {
                     switchingOverlay.visibility = View.GONE
                     recordButton.isEnabled = true
                     offlineModelButton.isEnabled = true
+                    micMuteButton.isEnabled = true
                 }
             }
         }
